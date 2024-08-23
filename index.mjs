@@ -20,18 +20,18 @@ function isListedInWhitelist(uri, listing) {
 }
 
 // Event listener for incoming fetch requests
-addEventListener("fetch", async event => {
-	event.respondWith((async function () {
-		const isPreflightRequest = (event.request.method === "OPTIONS")
+export default {
+	async fetch(request) {
+		const isPreflightRequest = (request.method === "OPTIONS")
 
-		const originUrl = new URL(event.request.url)
+		const originUrl = new URL(request.url)
 
 		// Function to modify headers to enable CORS
 		function setupCORSHeaders(headers) {
-			headers.set("Access-Control-Allow-Origin", event.request.headers.get("Origin"))
+			headers.set("Access-Control-Allow-Origin", request.headers.get("Origin"))
 			if (isPreflightRequest) {
-				headers.set("Access-Control-Allow-Methods", event.request.headers.get("access-control-request-method"))
-				const requestedHeaders = event.request.headers.get("access-control-request-headers")
+				headers.set("Access-Control-Allow-Methods", request.headers.get("access-control-request-method"))
+				const requestedHeaders = request.headers.get("access-control-request-headers")
 
 				if (requestedHeaders)
 					headers.set("Access-Control-Allow-Headers", requestedHeaders)
@@ -44,11 +44,11 @@ addEventListener("fetch", async event => {
 
 		const targetUrl = decodeURIComponent(decodeURIComponent(originUrl.search.substr(1)))
 
-		const originHeader = event.request.headers.get("Origin")
-		const connectingIp = event.request.headers.get("CF-Connecting-IP")
+		const originHeader = request.headers.get("Origin")
+		const connectingIp = request.headers.get("CF-Connecting-IP")
 
 		if ((!isListedInWhitelist(targetUrl, blacklistUrls)) && (isListedInWhitelist(originHeader, whitelistOrigins))) {
-			let customHeaders = event.request.headers.get("x-cors-headers")
+			let customHeaders = request.headers.get("x-cors-headers")
 
 			if (customHeaders !== null)
 				try {
@@ -58,7 +58,7 @@ addEventListener("fetch", async event => {
 
 			if (originUrl.search.startsWith("?")) {
 				const filteredHeaders = {}
-				for (const [key, value] of event.request.headers.entries())
+				for (const [key, value] of request.headers.entries())
 					if (
 						(key.match("^origin") === null) &&
 						(key.match("eferer") === null) &&
@@ -74,7 +74,7 @@ addEventListener("fetch", async event => {
 					Object.entries(customHeaders).forEach((entry) => (filteredHeaders[entry[0]] = entry[1]))
 
 
-				const newRequest = new Request(event.request, {
+				const newRequest = new Request(request, {
 					redirect: "follow",
 					headers: filteredHeaders
 				})
@@ -108,9 +108,9 @@ addEventListener("fetch", async event => {
 
 				let country = false
 				let colo = false
-				if (typeof event.request.cf !== "undefined") {
-					country = event.request.cf.country || false
-					colo = event.request.cf.colo || false
+				if (typeof request.cf !== "undefined") {
+					country = request.cf.country || false
+					colo = request.cf.colo || false
 				}
 
 				return new Response(
@@ -141,6 +141,5 @@ addEventListener("fetch", async event => {
 					}
 				}
 			)
-
-	})())
-})
+	}
+}
